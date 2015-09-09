@@ -2,6 +2,7 @@ var superagent = require('superagent');
 var cheerio = require('cheerio');
 var async = require('async');
 var url = require('url');
+var fs = require('fs');
 var items = [];
 var concurrencyCount = 0;
 
@@ -39,6 +40,7 @@ function getContent(articleurl,title,callback)
        console.log('现在的并发数是：' + concurrencyCount + ',正在爬取' + articleurl  );
        $ = cheerio.load(res.text);
        var content = $('.sp','#m_main').text();
+       writeStream.write(title+'\n\t'+content+'\n\n');
        callback(null,content);
        concurrencyCount--;
     });        
@@ -48,7 +50,7 @@ function getContent(articleurl,title,callback)
 function startDown(cb)
 {
     async.mapLimit(items,5,function(item,callback){
-        getContent(item.url,item.text,callback);
+        getContent(item.url,item.title,callback);
     },function(err,result){
         console.log('final:');
         cb(null,result);
@@ -56,10 +58,13 @@ function startDown(cb)
 }
 //执行爬取
 var args = process.argv;
+var writeStream = fs.createWriteStream('./content.txt',{flags:'w',encoding:'utf8'});
+
 if(args.length == 2)
 {
         page(Url,startDown,function(err,result){
             console.log(result);
+            writeStream.end();
         });
 }
 else
@@ -78,6 +83,7 @@ else
             page(pageurl,startDown,callback);
         },function(err,result){
             console.log(result);
+            writeStream.end();
         });
     }
 }
